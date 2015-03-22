@@ -21,47 +21,36 @@
         }
         return BigText;
       },
-      test: {
-        wholeNumberFontSizeOnly: function() {
-          if( !( 'getComputedStyle' in window ) || document.body == null ) {
+      supports: {
+        wholeNumberFontSizeOnly: (function() {
+          if( !( 'getComputedStyle' in window ) ) {
             return true;
           }
           var test = $('<div/>').css({
               position: 'absolute',
               'font-size': '14.1px'
-            }).appendTo(document.body).get(0),
-            computedStyle = window.getComputedStyle( test, null );
+            }).insertBefore( $('script').eq(0) ),
+            computedStyle = window.getComputedStyle( test[0], null );
 
-          if( computedStyle ) {
-            return computedStyle.getPropertyValue( 'font-size' ) === '14px';
-          }
-          return true;
-        }
-      },
-      supports: {
-        wholeNumberFontSizeOnly: undefined
+          var ret = computedStyle && computedStyle.getPropertyValue( 'font-size' ) === '14px';
+          test.remove();
+          return ret;
+        })()
       },
       init: function() {
-        if( BigText.supports.wholeNumberFontSizeOnly === undefined ) {
-          BigText.supports.wholeNumberFontSizeOnly = BigText.test.wholeNumberFontSizeOnly();
-        }
-
         if(!$('#'+BigText.GLOBAL_STYLE_ID).length) {
           $headCache.append(BigText.generateStyleTag(BigText.GLOBAL_STYLE_ID, ['.bigtext * { white-space: nowrap; } .bigtext > * { display: block; }',
                                           '.bigtext .' + BigText.EXEMPT_CLASS + ', .bigtext .' + BigText.EXEMPT_CLASS + ' * { white-space: normal; }']));
         }
       },
       bindResize: function(eventName, resizeFunction) {
-        if($.throttle) {
-          // https://github.com/cowboy/jquery-throttle-debounce
-          $(window).unbind(eventName).bind(eventName, $.throttle(100, resizeFunction));
-        } else {
-          if($.fn.smartresize) {
-            // https://github.com/lrbabe/jquery-smartresize/
-            eventName = 'smartresize.' + eventName;
+        var timeoutId;
+        $(window).unbind(eventName).bind(eventName, function() {
+          if( timeoutId ) {
+            clearTimeout( timeoutId );
           }
-          $(window).unbind(eventName).bind(eventName, resizeFunction);
-        }
+          timeoutId = setTimeout( resizeFunction, 100 );
+        });
       },
       getStyleId: function(id)
       {
